@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>@shiftcode</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"/>
+  <style>
+    body { margin: 0; overflow: hidden; background: #000; }
+    canvas { display: block; touch-action: none; }
+    .meta-link {
+      position: fixed;
+      left: 10px;
+      padding: 10px 20px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px;
+      backdrop-filter: blur(3px);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      text-decoration: none;
+      color: #fff;
+      font-family: "Rubik", sans-serif;
+      transition: 0.3s;
+      z-index: 10000;
+    }
+    .meta-link:hover {
+      background: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.2);
+    }
+    #yt-link { top: 10px; }
+    #github-link { top: 70px; }
+    #yt-link i { color: rgb(219,31,106); }
+    #github-link i { color: rgb(94,106,210); }
+  </style>
+</head>
+<body>
+  <canvas id="world"></canvas>
+  <a id="yt-link" class="meta-link" href="https://youtube.com/@shiftcode?si=YnfQKjwrM-mYZ2x8" target="_blank">
+    <i class="fab fa-youtube"></i><span>Subscribe @shiftcode</span>
+  </a>
+  <a id="github-link" class="meta-link" href="https://github.com/amir-isfahani" target="_blank">
+    <i class="fab fa-github"></i><span>View GitHub</span>
+  </a>
+  <script>
+    const canvas = document.getElementById('world');
+    const ctx = canvas.getContext('2d');
+    let W = window.innerWidth, H = window.innerHeight;
+    canvas.width = W; canvas.height = H;
+
+    const QUANTITY = 25, RADIUS = 70, MIN_SCALE = 1, MAX_SCALE = 1.5;
+    let radiusScale = MIN_SCALE;
+    let mouseX = W/2, mouseY = H/2, lastX = mouseX, lastY = mouseY, isHovering = false;
+    const particles = [];
+
+    class Particle {
+      constructor(i) {
+        this.index = i;
+        this.position = { x: mouseX, y: mouseY };
+        this.shift = { x: mouseX, y: mouseY };
+        this.offset = { x: 0, y: 0 };
+        this.speed = 0.01 + Math.random()*0.04;
+        this.orbit = RADIUS*0.5 + RADIUS*0.5*Math.random();
+        this.size = 1;
+        this.targetSize = 1 + Math.random()*6;
+        this.fillColor = `hsl(${Math.random()*360},100%,70%)`;
+      }
+      update() {
+        this.offset.x += this.speed;
+        this.offset.y += this.speed;
+        const tx = isHovering ? mouseX : lastX;
+        const ty = isHovering ? mouseY : lastY;
+        this.shift.x += (tx - this.shift.x) * this.speed;
+        this.shift.y += (ty - this.shift.y) * this.speed;
+        this.position.x = this.shift.x +
+          Math.cos(this.index + this.offset.x) * (this.orbit * radiusScale);
+        this.position.y = this.shift.y +
+          Math.sin(this.index + this.offset.y) * (this.orbit * radiusScale);
+        this.size += (this.targetSize - this.size) * 0.05;
+        if (Math.round(this.size) === Math.round(this.targetSize)) {
+          this.targetSize = 1 + Math.random()*6;
+        }
+        ctx.beginPath();
+        ctx.fillStyle = this.fillColor;
+        ctx.shadowColor = this.fillColor;
+        ctx.shadowBlur = 20;
+        ctx.arc(this.position.x, this.position.y, this.size/2, 0, Math.PI*2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+    }
+
+    function createParticles() {
+      for (let i = 0; i < QUANTITY; i++) {
+        particles.push(new Particle(i));
+      }
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      radiusScale += (isHovering ? (MAX_SCALE - radiusScale) : (MIN_SCALE - radiusScale)) * 0.02;
+      radiusScale = Math.min(radiusScale, MAX_SCALE);
+      ctx.fillStyle = 'rgba(0,0,0,0.05)';
+      ctx.fillRect(0, 0, W, H);
+      particles.forEach(p => p.update());
+    }
+
+    canvas.addEventListener('mousemove', e => {
+      mouseX = e.clientX; mouseY = e.clientY;
+    });
+    canvas.addEventListener('mouseenter', () => isHovering = true);
+    canvas.addEventListener('mouseleave', () => {
+      isHovering = false;
+      lastX = mouseX; lastY = mouseY;
+    });
+    canvas.addEventListener('touchstart', e => {
+      e.preventDefault();
+      isHovering = true;
+      mouseX = e.touches[0].pageX; mouseY = e.touches[0].pageY;
+    }, { passive:false });
+    canvas.addEventListener('touchmove', e => {
+      e.preventDefault();
+      mouseX = e.touches[0].pageX; mouseY = e.touches[0].pageY;
+    }, { passive:false });
+    function endTouch() {
+      isHovering = false;
+      lastX = mouseX; lastY = mouseY;
+    }
+    canvas.addEventListener('touchend', endTouch);
+    canvas.addEventListener('touchcancel', endTouch);
+    window.addEventListener('resize', () => {
+      W = window.innerWidth; H = window.innerHeight;
+      canvas.width = W; canvas.height = H;
+    });
+
+    createParticles();
+    animate();
+  </script>
+</body>
+</html>
